@@ -21,8 +21,8 @@ def get_inventory_data(start_date, end_date, targets):
     # Get a reference to the BigQuery client and dataset
     bigquery_client = bigquery.Client()
     
-    # Initialize variables for unit_length and genres
-    unit_length = None
+    # Initialize variables
+    unit_length = 30
     genres = []
     program_types = []
 
@@ -57,10 +57,16 @@ def get_inventory_data(start_date, end_date, targets):
         FROM UNNEST(SPLIT(content_library.genre, ',')) AS genre
         WHERE genre IN ({genre_string})
         )"""
+    else:
+        genre_query_string = ""
+
+    # Construct the program_type string for the WHERE clause
 
     if program_types:
         program_type_string = ', '.join([f"'{program_type}'" for program_type in program_types])
         program_type_query_string = f"""AND content_library.program_type = {program_type_string}"""
+    else:
+        program_type_query_string = ""
 
     # Construct the BigQuery query
     query = f"""

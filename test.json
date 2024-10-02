@@ -1,36 +1,23 @@
 {
-    "inventoryRequestId": "3b4c24e0-5993-486f-a415-2e71da32c8d4",
-    "queryType": "SUMMARY",
-    "startDate": "2024-11-01 00:00",
-    "endDate": "2024-11-30 23:59",
-    "bookingType": "Guaranteed",
-    "locators": {},
-    "targets": [
-      {
-        "targetName": "Unit Length",
-        "targetValues": [
-          "30"
-        ]
-      },
-      {
-        "targetName": "Genre",
-        "targetValues": [
-          "Western",
-          "Horror"
-        ]
-      },
-      {
-        "targetName": "Program Type",
-        "targetValues": [
-          "Episodic"
-        ]
-      }
-    ],
-    "products": [
-      {
-        "name": "Wicked Web Homepage 300x250",
-        "id": 1342
-      }
-    ],
-    "tenant": "digitalsandbox04"
-  }
+  "inventoryRequestId": "b7f49948-4ff1-467c-8619-e4f83d9e29d0",
+  "queryType": "SUMMARY",
+  "startDate": "2024-11-01 00:00",
+  "endDate": "2024-11-27 23:59",
+  "bookingType": "Guaranteed",
+  "locators": {},
+  "targets": [
+    {
+      "targetName": "Key Values",
+      "targetValues": [
+        "aud=dinner_and_a_show"
+      ]
+    }
+  ],
+  "products": [
+    {
+      "name": "Wicked Web Homepage 300x250",
+      "id": 1342
+    }
+  ],
+  "tenant": "digitalsandbox04"
+}
