@@ -2,8 +2,6 @@ from google.cloud import bigquery
 import json
 import datetime
 import random
-import re
-import os
 
 
 def get_inventory_data(start_date, end_date, targets):
@@ -21,7 +19,6 @@ def get_inventory_data(start_date, end_date, targets):
     booked_count = 0
 
     # Get a reference to the BigQuery client and dataset
-    os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = 'aos-demo-toolkit-1c72a905415b.json'
     bigquery_client = bigquery.Client()
     
     # Initialize variables for unit_length and genres
@@ -159,22 +156,3 @@ def main(request):
     else:
         # Handle non-JSON requests (optional)
         return "Request is not a JSON object"
-    
-# Load JSON data from test.json
-with open("test.json", "r") as f:
-    test_data = json.load(f)
-
-# Create a mock request object
-class MockRequest:
-    def __init__(self, json_data):
-        self._json = json_data
-
-    def is_json(self):
-        return True
-
-    def get_json(self):
-        return self._json
-
-# Call main function with mock request
-mock_request = MockRequest(test_data)
-print(main(mock_request))
