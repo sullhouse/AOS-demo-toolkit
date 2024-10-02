@@ -2,7 +2,7 @@
     "inventoryRequestId": "3b4c24e0-5993-486f-a415-2e71da32c8d4",
     "queryType": "SUMMARY",
     "startDate": "2024-11-01 00:00",
-    "endDate": "2024-11-15 23:59",
+    "endDate": "2024-11-30 23:59",
     "bookingType": "Guaranteed",
     "locators": {},
     "targets": [
@@ -17,6 +17,12 @@
         "targetValues": [
           "Western",
           "Horror"
+        ]
+      },
+      {
+        "targetName": "Program Type",
+        "targetValues": [
+          "Episodic"
         ]
       }
     ],

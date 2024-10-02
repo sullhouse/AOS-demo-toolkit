@@ -6,7 +6,7 @@ import re
 import os
 
 
-def generate_numbers(start_date, end_date, unit_length, genres):
+def get_inventory_data(start_date, end_date, targets):
     """Generates capacityCount, bookedCount, and availableCount for a date range.
 
     Args:
@@ -23,11 +23,47 @@ def generate_numbers(start_date, end_date, unit_length, genres):
     # Get a reference to the BigQuery client and dataset
     os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = 'aos-demo-toolkit-1c72a905415b.json'
     bigquery_client = bigquery.Client()
-    dataset_id = "inventory"
-    table_id = "daily_viewership_forecast"
+    
+    # Initialize variables for unit_length and genres
+    unit_length = None
+    genres = []
+    program_types = []
+
+    # Iterate through the targets
+    for target in targets:
+        target_name = target.get("targetName")
+        target_values = target.get("targetValues")
+
+        if target_name == "Unit Length" and target_values:
+            # Assuming "Unit Length" has only one value
+            unit_length = int(target_values[0]) 
+        elif target_name == "Genre":
+            # Extend the genres list with targetValues
+            genres.extend(target_values)
+        elif target_name == "Program Type":
+            # Extend the program_types list with targetValues
+            program_types.extend(target_values)
+
+    # Now you have unit_length and genres extracted
+    print("Querying Inventory for the following parameters:")
+    print("Start Date:", start_date)
+    print("End Date:", end_date)
+    print("Unit Length:", unit_length)
+    print("Genres:", genres)
+    print("Program Types:", program_types)
 
     # Construct the genre string for the WHERE clause
-    genre_string = ", ".join([f"'{genre}'" for genre in genres])
+    if genres:
+        genre_string = ', '.join([f"'{genre}'" for genre in genres])
+        genre_query_string = f"""AND EXISTS (
+        SELECT 1
+        FROM UNNEST(SPLIT(content_library.genre, ',')) AS genre
+        WHERE genre IN ({genre_string})
+        )"""
+
+    if program_types:
+        program_type_string = ', '.join([f"'{program_type}'" for program_type in program_types])
+        program_type_query_string = f"""AND content_library.program_type = {program_type_string}"""
 
     # Construct the BigQuery query
     query = f"""
@@ -42,8 +78,6 @@ def generate_numbers(start_date, end_date, unit_length, genres):
 
     FROM (
     SELECT
-        block_schedule.*,
-        CAST(block_schedule.air_length / {unit_length} AS INT64) AS units,
         (
         SELECT
             time_viewership_distribution.portion_of_daily_viewers_watching * CAST(block_schedule.air_length / {unit_length} AS INT64)
@@ -55,11 +89,8 @@ def generate_numbers(start_date, end_date, unit_length, genres):
         `aos-demo-toolkit.inventory.block_schedule` AS block_schedule
         INNER JOIN `aos-demo-toolkit.inventory.content_library` AS content_library ON block_schedule.content_id = content_library.content_id
     WHERE block_schedule.block_type = 'Break'
-        AND EXISTS (
-        SELECT 1
-        FROM UNNEST(SPLIT(content_library.genre, ',')) AS genre
-        WHERE genre IN ({genre_string})
-        )
+        {genre_query_string}
+        {program_type_query_string}
     );
     """
 
@@ -100,34 +131,12 @@ def main(request):
         # Access the targets array
         targets = request_json.get("targets", [])
 
-        # Initialize variables for unit_length and genres
-        unit_length = None
-        genres = []
-
-        # Iterate through the targets
-        for target in targets:
-            target_name = target.get("targetName")
-            target_values = target.get("targetValues")
-
-            if target_name == "Unit Length" and target_values:
-                # Assuming "Unit Length" has only one value
-                unit_length = int(target_values[0]) 
-            elif target_name == "Genre":
-                # Extend the genres list with targetValues
-                genres.extend(target_values)
-
-        # Now you have unit_length and genres extracted
-        print("Querying Inventory for the following parameters:")
-        print("Start Date:", start_date)
-        print("End Date:", end_date)
-        print("Unit Length:", unit_length)
-        print("Genres:", genres)
         # Generate numbers
         (
             capacity_count,
             booked_count,
             available_count,
-        ) = generate_numbers(start_date, end_date, 30, genres)
+        ) = get_inventory_data(start_date, end_date, targets)
 
         # Replace values in response JSON
         response_json = {

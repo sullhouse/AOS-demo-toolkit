@@ -1,1 +1,1 @@
-# AOS-demo-toolkit
+Inventory function to convert an inventory request from AOS or Operative.One into a forecast response based on a dataset built in bigquery. 
