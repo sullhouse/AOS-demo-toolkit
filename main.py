@@ -2,6 +2,7 @@ import functions_framework
 from google.cloud import storage
 import json
 import datetime
+import uuid
 
 @functions_framework.http
 def hello_http(request):
@@ -27,9 +28,10 @@ def hello_http(request):
 
         # Generate a timestamp for the filename
         timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+        short_uuid = str(uuid.uuid4())[:8]
 
         # Create a filename with the timestamp
-        filename = f"request_{timestamp}.json"
+        filename = f"request_{timestamp}_{short_uuid}.json"
 
         # Construct the full path within the bucket
         blob = bucket.blob(f"{folder_name}/{filename}")
@@ -62,6 +64,23 @@ def hello_http(request):
         imported_module = __import__(module_name)
         function = getattr(imported_module, function_name)
         # Call the function with the request
-        return function(request)
+        response = function(request)
+
+        folder_name = "responses"
+
+        # Extract data from the request and save in readable format
+        try:
+            # Create a filename with the timestamp
+            filename = f"response_{timestamp}_{short_uuid}.json"
+
+            # Construct the full path within the bucket
+            blob = bucket.blob(f"{folder_name}/{filename}")
+
+            # Upload the entire request data in a readable format
+            blob.upload_from_string(json.dumps(response, indent=2))
+        except Exception as e: 
+            return f"An error occurred while trying to save response to GCS: {e}"
+
+        return response
     else:
         return f"Function '{function_name}' not found"
