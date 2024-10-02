@@ -122,14 +122,8 @@ def upsert_lineitem(name, sourceLineitemId, start_date, end_date, cost_method, q
         lineitem = {
             "lineitemId": str(lineitem_id),
             "sourceLineitemId": sourceLineitemId,
-            "name": name,
-            "startDate": start_date,
-            "endDate": end_date,
-            "costType": cost_method,
-            "quantity": quantity,
-            "unitCost": unit_cost,
             "status": "success",
-            "errorMessage": "No errors"
+            "errorMessage": None
         }
     except StopIteration:
         # Lineitem not found
@@ -161,13 +155,8 @@ def upsert_lineitem(name, sourceLineitemId, start_date, end_date, cost_method, q
             "lineitemId": str(lineitem_id),
             "sourceLineitemId": sourceLineitemId,
             "name": name,
-            "startDate": start_date,
-            "endDate": end_date,
-            "costType": cost_method,
-            "quantity": quantity,
-            "unitCost": unit_cost,
             "status": "success",
-            "errorMessage": "No errors"
+            "errorMessage": None
         }
     return lineitem
 
