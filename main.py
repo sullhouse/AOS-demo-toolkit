@@ -44,7 +44,7 @@ def hello_http(request):
         }
 
         # Upload the entire request data in a readable format
-        blob.upload_from_string(json.dumps(request_data, indent=2))
+        #blob.upload_from_string(json.dumps(request_data, indent=2))
     except Exception as e: 
         return f"An error occurred while trying to save request to GCS: {e}"
     
@@ -54,8 +54,8 @@ def hello_http(request):
     # Define a dictionary mapping function names to modules
     functions = {
         "inventory": "inventory.main",  # Module name and function name
-        "advertisers": "advertisers.main",  # Module name and function name
-        # Add more functions as needed (e.g., "orders": "orders.handle_order")
+        "advertisers": "advertisers.main",
+        "orders": "orders.main"
     }
 
     # Import the corresponding module dynamically

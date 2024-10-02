@@ -1,8 +1,5 @@
 from google.cloud import bigquery
 import json
-import datetime
-import random
-
 
 def upsert_advertiser(name, sourceAdvertiserId):
     """Checks to see if an advertiser exists and returns that ID.
@@ -12,7 +9,7 @@ def upsert_advertiser(name, sourceAdvertiserId):
         sourceAdvertiserId of the advertiser from the OMS
 
     Returns:
-        advertiserId: The ID of the advertiser in the AOS system. 0 if not found.
+        advertiserId: The ID of the advertiser in the OMS system. 0 if not found.
     """
     advertiser_id = 0
 
