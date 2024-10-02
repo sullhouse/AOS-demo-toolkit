@@ -1,0 +1,30 @@
+{
+    "inventoryRequestId": "3b4c24e0-5993-486f-a415-2e71da32c8d4",
+    "queryType": "SUMMARY",
+    "startDate": "2024-11-01 00:00",
+    "endDate": "2024-11-15 23:59",
+    "bookingType": "Guaranteed",
+    "locators": {},
+    "targets": [
+      {
+        "targetName": "Unit Length",
+        "targetValues": [
+          "30"
+        ]
+      },
+      {
+        "targetName": "Genre",
+        "targetValues": [
+          "Western",
+          "Horror"
+        ]
+      }
+    ],
+    "products": [
+      {
+        "name": "Wicked Web Homepage 300x250",
+        "id": 1342
+      }
+    ],
+    "tenant": "digitalsandbox04"
+  }
