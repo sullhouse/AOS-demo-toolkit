@@ -1,7 +1,7 @@
-import functions_framework # type: ignore
+import functions_framework
 
 @functions_framework.http
-def hello_http(request):
+def hello_http(request, arg2):
   """Main Cloud Function that dispatches requests based on the URL path.
 
   Args:
