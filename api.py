@@ -1,7 +1,7 @@
 import functions_framework
 
 @functions_framework.http
-def hello_http(request, arg2):
+def hello_http(request):
   """Main Cloud Function that dispatches requests based on the URL path.
 
   Args:
