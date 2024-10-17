@@ -1,6 +1,4 @@
-FROM python:latest
-
-FROM ubuntu:22.04
+FROM python:3.9-slim
 
 WORKDIR /app
 
