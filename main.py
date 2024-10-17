@@ -43,8 +43,8 @@ def hello_http(request):
             "json": request_json
         }
 
-        # Upload the entire request data in a readable format
-        #blob.upload_from_string(json.dumps(request_data, indent=2))
+        # Upload the entire request data to GCS bucket in a readable format
+        blob.upload_from_string(json.dumps(request_data, indent=2))
     except Exception as e: 
         return f"An error occurred while trying to save request to GCS: {e}"
     
