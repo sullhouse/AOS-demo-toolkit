@@ -3,7 +3,7 @@ name: Deploy to Cloud Run
 on:
   push:
     branches:
-      - main  # Change this to your default branch if necessary
+      - main # Change this to your default branch if necessary
 
 jobs:
   build-and-deploy:
@@ -23,20 +23,13 @@ jobs:
         with:
           project_id: ${{ secrets.GCP_PROJECT }}
 
-      - name: Configure Docker to authenticate with Google Cloud
-        run: |
-          gcloud auth configure-docker
-
-      - name: Build and Push Docker image to GCR
-        run: |
-          IMAGE_NAME=gcr.io/${{ secrets.GCP_PROJECT }}/api
-          docker build -t $IMAGE_NAME .
-          docker push $IMAGE_NAME
-
       - name: Deploy to Cloud Run
         run: |
-          gcloud run deploy api \
-            --image gcr.io/${{ secrets.GCP_PROJECT }}/api \
+          gcloud functions deploy api \
+            --gen2 \
+            --runtime=python312 \
             --region us-central1 \
-            --platform managed \
+            --source=. \
+            --entry-point=hello_http \
+            --trigger-http \
             --allow-unauthenticated
