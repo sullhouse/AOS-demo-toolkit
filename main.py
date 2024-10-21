@@ -43,7 +43,7 @@ def hello_http(request):
             "json": request_json
         }
 
-        # This is a comment after BA fixed the deployment process
+        # This is a comment after making sure the SA key is correct
 
         # Upload the entire request data in a readable format
         blob.upload_from_string(json.dumps(request_data, indent=2))
