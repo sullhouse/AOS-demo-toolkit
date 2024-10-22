@@ -43,7 +43,7 @@ def hello_http(request):
             "json": request_json
         }
 
-        # This is a comment after making sure the SA key is correct
+        # This is a comment after adding view permissions to the SA key
 
         # Upload the entire request data in a readable format
         blob.upload_from_string(json.dumps(request_data, indent=2))
