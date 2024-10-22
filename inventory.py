@@ -158,7 +158,7 @@ def main(request):
             "contenders": None,
         }
 
-        return json.dumps(response_json)
+        return response_json
     else:
         # Handle non-JSON requests (optional)
         return "Request is not a JSON object"

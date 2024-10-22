@@ -79,7 +79,7 @@ def main(request):
             "sourceAdvertiserId": request_json.get("sourceAdvertiserId"),
         }
 
-        return json.dumps(response_json)
+        return response_json
     else:
         # Handle non-JSON requests (optional)
         return "Request is not a JSON object"

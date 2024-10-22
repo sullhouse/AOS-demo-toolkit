@@ -181,7 +181,7 @@ def main(request):
         }
 
 
-        return json.dumps(response_json)
+        return response_json
     else:
         # Handle non-JSON requests (optional)
         return "Request is not a JSON object"
