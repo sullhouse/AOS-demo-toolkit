@@ -25,7 +25,7 @@ jobs:
 
       - name: Deploy to Cloud Run
         run: |
-          gcloud functions deploy api \
+          gcloud run deploy api \
             --gen2 \
             --runtime=python312 \
             --region us-central1 \
