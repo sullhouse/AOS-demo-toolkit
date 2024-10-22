@@ -16,5 +16,5 @@ EXPOSE 8080
 # Define environment variable for port
 ENV PORT 8080
 
-# Run the application
-CMD ["python", "main.py"]
+# Start Functions Framework with your function
+CMD ["functions-framework", "--target=hello_http", "--port=8080"]
