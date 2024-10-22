@@ -1,4 +1,5 @@
 import functions_framework
+from flask import Response
 from google.cloud import storage
 import json
 import datetime
@@ -43,46 +44,53 @@ def hello_http(request):
             "json": request_json
         }
 
-        # Things should be all right in the world
+        # Save the request data to the GCS bucket
+        blob.upload_from_string(
+            data=json.dumps(request_data),
+            content_type='application/json'
+        )
 
-        # Upload the entire request data in a readable format
-        blob.upload_from_string(json.dumps(request_data, indent=2))
-    except Exception as e: 
-        return f"An error occurred while trying to save request to GCS: {e}"
-    
-    # Get the function name from the request URL
-    function_name = request.path.split("/")[-1]
+        # Get the function name from the request URL
+        function_name = request.path.split("/")[-1]
 
-    # Define a dictionary mapping function names to modules
-    functions = {
-        "inventory": "inventory.main",  # Module name and function name
-        "advertisers": "advertisers.main",
-        "orders": "orders.main"
-    }
+        # Define a dictionary mapping function names to modules
+        functions = {
+            "inventory": "inventory.main",  # Module name and function name
+            "advertisers": "advertisers.main",
+            "orders": "orders.main"
+        }
 
-    # Import the corresponding module dynamically
-    if function_name in functions:
-        module_name, function_name = functions[function_name].rsplit(".", 1)
-        imported_module = __import__(module_name)
-        function = getattr(imported_module, function_name)
-        # Call the function with the request
-        response = function(request)
+        # Import the corresponding module dynamically
+        if function_name in functions:
+            module_name, function_name = functions[function_name].rsplit(".", 1)
+            imported_module = __import__(module_name)
+            function = getattr(imported_module, function_name)
+            # Call the function with the request
+            response = function(request)
 
-        folder_name = "responses"
+            folder_name = "responses"
 
-        # Extract data from the request and save in readable format
-        try:
-            # Create a filename with the timestamp
-            filename = f"response_{timestamp}_{short_uuid}.json"
+            # Store the response in a file
+            try:
+                # Create a filename with the timestamp
+                filename = f"response_{timestamp}_{short_uuid}.json"
 
-            # Construct the full path within the bucket
-            blob = bucket.blob(f"{folder_name}/{filename}")
+                # Construct the full path within the bucket
+                blob = bucket.blob(f"{folder_name}/{filename}")
 
-            # Upload the entire request data in a readable format
-            blob.upload_from_string(json.dumps(response, indent=2))
-        except Exception as e: 
-            return f"An error occurred while trying to save response to GCS: {e}"
+                # Upload the entire request data in a readable format
+                blob.upload_from_string(json.dumps(response, indent=2))
+            except Exception as e:
+                error_response = Response(json.dumps({"error": str(e)}), status=500, mimetype='application/json')
+                return error_response
 
-        return response
-    else:
-        return f"Function '{function_name}' not found"
+            # Return the response as JSON
+            json_response = Response(json.dumps(response), status=200, mimetype='application/json')
+            return json_response
+        else:
+            error_response = Response(json.dumps({"error": "Function not found"}), status=404, mimetype='application/json')
+            return error_response
+
+    except Exception as e:
+        error_response = Response(json.dumps({"error": str(e)}), status=500, mimetype='application/json')
+        return error_response
