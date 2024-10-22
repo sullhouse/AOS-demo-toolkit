@@ -1,5 +1,4 @@
 from google.cloud import bigquery
-import json
 import datetime
 import random
 
