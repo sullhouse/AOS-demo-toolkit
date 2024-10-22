@@ -17,4 +17,4 @@ EXPOSE 8080
 ENV PORT 8080
 
 # Run the application
-CMD ["python", "app.py"]
+CMD ["python", "main.py"]
