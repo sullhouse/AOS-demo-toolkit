@@ -1,7 +1,6 @@
 from google.cloud import bigquery
 from datetime import datetime
 import delivery
-import uuid
 
 def upsert_order(name, order_id, oms_id, start_date, end_date, advertiser_id, salesperson_email_id, salesperson_name):
     bigquery_client = bigquery.Client()
@@ -68,7 +67,7 @@ def upsert_order(name, order_id, oms_id, start_date, end_date, advertiser_id, sa
 
     return order_id
 
-def upsert_lineitem(name, lineitem_id, oms_id, start_date, end_date, cost_type, quantity, unit_cost):
+def upsert_lineitem(name, lineitem_id, oms_id, start_date, end_date, cost_type, quantity, unit_cost, order_id, advertiser_id):
     """Checks to see if a lineitem exists and returns that ID.
 
     Args:
@@ -120,7 +119,9 @@ def upsert_lineitem(name, lineitem_id, oms_id, start_date, end_date, cost_type, 
                 end_date = '{end_date_dt}',
                 cost_method = '{cost_type}',
                 quantity = CAST('{quantity}' AS INT64),
-                unit_cost = CAST('{unit_cost}' AS FLOAT64)
+                unit_cost = CAST('{unit_cost}' AS FLOAT64),
+                order_id = {order_id},
+                advertiser_id = {advertiser_id}
             WHERE id = {lineitem_id}
         """
         # Run the query
@@ -147,8 +148,8 @@ def upsert_lineitem(name, lineitem_id, oms_id, start_date, end_date, cost_type, 
         # Insert a new row into the table
         new_id = max_id + 1
         insert_query = f"""
-        INSERT INTO `aos-demo-toolkit.orders.line_items` (id, name, oms_id, start_date, end_date, cost_method, quantity, unit_cost)
-        VALUES ({new_id}, '{name}', '{oms_id}', '{start_date_dt}', '{end_date_dt}', '{cost_type}', CAST('{quantity}' AS INT64), CAST('{unit_cost}' AS FLOAT64))
+        INSERT INTO `aos-demo-toolkit.orders.line_items` (id, name, oms_id, start_date, end_date, cost_method, quantity, unit_cost, order_id, advertiser_id)
+        VALUES ({new_id}, '{name}', '{oms_id}', '{start_date_dt}', '{end_date_dt}', '{cost_type}', CAST('{quantity}' AS INT64), CAST('{unit_cost}' AS FLOAT64), {order_id}, {advertiser_id})
         """
         insert_job = bigquery_client.query(insert_query)
         insert_job.result()  # Wait for the insert to complete
@@ -184,6 +185,8 @@ def main(request):
             request_json.get("salesPersonName")
         )
 
+        advertiser_id = request_json.get("advertiserId")
+
         lineitems = []
         for lineitem in request_json.get("lineitems"):
             lineitem_id = lineitem.get("lineitemId")
@@ -199,8 +202,12 @@ def main(request):
                 lineitem.get("endDate"),
                 lineitem.get("costType"),
                 int(lineitem.get("quantity")),
-                float(lineitem.get("unitCost"))
+                float(lineitem.get("unitCost")),
+                order_id,
+                advertiser_id
             ))
+
+        delivery.generate_delivery_data(order_id)
 
         # Replace values in response JSON
         response_json = {
