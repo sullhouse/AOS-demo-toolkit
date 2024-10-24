@@ -1,0 +1,21 @@
+{
+    "payload": "{\"productionSystemId\":\"PRODUCTION_SYSTEM_ID\",\"startDate\":\"TODAYS_DATE\",\"endDate\":\"END_DATE\"}",
+    "entityDetail": {
+        "entityType": "DeliveryPull",
+        "entitySource": "PAYLOAD"
+    },
+    "schemaDetail": {
+        "keySchema": "",
+        "valueSchema": ""
+    },
+    "routingDetail": {
+        "sourceSystemName": {
+            "extSystemName": "AOS",
+            "extSystemId": "PRODUCTION_SYSTEM_ID"
+        },
+        "targetSystemName": {
+            "extSystemName": "Adserver",
+            "extSystemId": "PRODUCTION_SYSTEM_ID"
+        }
+    }
+}

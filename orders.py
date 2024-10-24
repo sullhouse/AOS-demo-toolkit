@@ -1,6 +1,12 @@
 from google.cloud import bigquery
 from datetime import datetime
 import delivery
+import threading
+import time
+
+def delayed_generate_delivery_data(order_id):
+    time.sleep(5)  # Wait for 5 seconds
+    delivery.generate_delivery_data(order_id)
 
 def upsert_order(name, order_id, oms_id, start_date, end_date, advertiser_id, salesperson_email_id, salesperson_name):
     bigquery_client = bigquery.Client()
@@ -207,7 +213,8 @@ def main(request):
                 advertiser_id
             ))
 
-        delivery.generate_delivery_data(order_id)
+        # Start the background thread to generate delivery data
+        threading.Thread(target=delayed_generate_delivery_data, args=(order_id,)).start()
 
         # Replace values in response JSON
         response_json = {
