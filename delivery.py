@@ -17,7 +17,9 @@ def generate_delivery_data(order_id, basic_auth):
     decoded_auth = base64.b64decode(encoded_auth).decode('utf-8')
     user_info, password_info = decoded_auth.split(':')
     api_user, api_tenant_name, production_system_name, ftp_user, ftp_host, ftp_folder = user_info.split('||')
+    print(f"API User: {api_user}, API Tenant Name: {api_tenant_name}, Production System Name: {production_system_name}, FTP User: {ftp_user}, FTP Host: {ftp_host}, FTP Folder: {ftp_folder}")
     api_pass, api_key, ftp_pass = password_info.split('||')
+    print(f"API Password: {api_pass}, API Key: {api_key}, FTP Password: {ftp_pass}")
 
     # Query to get the line item details
     query = f"""

@@ -57,7 +57,8 @@ def hello_http(request):
         functions = {
             "inventory": "inventory.main",  # Module name and function name
             "advertisers": "advertisers.main",
-            "orders": "orders.main"
+            "orders": "orders.main",
+            "creds": "creds.main"  # Add the new creds module
         }
 
         # Import the corresponding module dynamically
