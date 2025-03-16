@@ -4,9 +4,9 @@ import delivery
 import threading
 import time
 
-def delayed_generate_delivery_data(order_id):
+def delayed_generate_delivery_data(order_id, basic_auth):
     time.sleep(5)  # Wait for 5 seconds
-    delivery.generate_delivery_data(order_id)
+    delivery.generate_delivery_data(order_id, basic_auth)
 
 def upsert_order(name, order_id, oms_id, start_date, end_date, advertiser_id, salesperson_email_id, salesperson_name):
     bigquery_client = bigquery.Client()
@@ -214,7 +214,8 @@ def main(request):
             ))
 
         # Start the background thread to generate delivery data
-        threading.Thread(target=delayed_generate_delivery_data, args=(order_id,)).start()
+        basic_auth = request.headers.get("Authorization")
+        threading.Thread(target=delayed_generate_delivery_data, args=(order_id, basic_auth)).start()
 
         # Replace values in response JSON
         response_json = {

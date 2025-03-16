@@ -6,14 +6,20 @@ import datetime
 import random
 from google.cloud import secretmanager
 import ftplib
-
 import requests
+import base64
 
-def generate_delivery_data(order_id):
+def generate_delivery_data(order_id, basic_auth):
     client = bigquery.Client()
 
-    # Query to get the line item details
+    # Decode the basic_auth parameter
+    encoded_auth = basic_auth.split(" ")[1]
+    decoded_auth = base64.b64decode(encoded_auth).decode('utf-8')
+    user_info, password_info = decoded_auth.split(':')
+    api_user, api_tenant_name, production_system_name, ftp_user, ftp_host, ftp_folder = user_info.split('||')
+    api_pass, api_key, ftp_pass = password_info.split('||')
 
+    # Query to get the line item details
     query = f"""
     SELECT
         line_items.id AS line_item_id,
@@ -104,7 +110,6 @@ def generate_delivery_data(order_id):
             rows_to_insert.append(row)
             csv_rows.append(csv_row)
 
-
     errors = client.insert_rows_json(table_id, rows_to_insert)
 
     # Ensure the /tmp directory exists
@@ -122,29 +127,7 @@ def generate_delivery_data(order_id):
         writer.writeheader()
         for row in csv_rows:
             writer.writerow(row)
-
-    environment = os.getenv("ENVIRONMENT")
-
-    if environment == "development":
-        # Use local FTP credentials for development
-        with open("local_credentials.json") as f:
-            local_credentials = json.load(f)
-        ftp_host = local_credentials["ftp_host"]
-        ftp_user = local_credentials["ftp_user"]
-        ftp_pass = local_credentials["ftp_pass"]
-        ftp_folder = local_credentials["ftp_folder"]
-    else:
-        secret_client = secretmanager.SecretManagerServiceClient()
-        project_id = os.getenv('GOOGLE_CLOUD_PROJECT')
-        secret_name = f"projects/{project_id}/secrets/DELIVERY_FTP_CREDENTIALS/versions/latest"
-        response = secret_client.access_secret_version(request={"name": secret_name})
-        ftp_credentials = json.loads(response.payload.data.decode("UTF-8"))
-
-        ftp_host = ftp_credentials["ftp_host"]
-        ftp_user = ftp_credentials["ftp_user"]
-        ftp_pass = ftp_credentials["ftp_pass"]
-        ftp_folder = ftp_credentials["ftp_folder"]
-
+    
     with ftplib.FTP(ftp_host) as ftp:
         ftp.login(user=ftp_user, passwd=ftp_pass)
         ftp.cwd(ftp_folder)  # Change to the specified folder
@@ -155,51 +138,28 @@ def generate_delivery_data(order_id):
         print(f"Encountered errors while inserting rows: {errors}")
     else:
         print("Primary delivery rows have been successfully inserted.")
-        trigger_pull_api(csv_filename)
+        trigger_pull_api(csv_filename, api_user, api_pass, api_key, api_tenant_name, production_system_name)
 
     # Clean up the temporary CSV file
     os.remove(csv_file_path)
 
     return f"Primary delivery data has been generated and uploaded to FTP server."
 
-def trigger_pull_api(filename):
+def trigger_pull_api(filename, api_user, api_pass, api_key, api_tenant_name, production_system_name):
     environment = os.getenv("ENVIRONMENT")
     print(f"ENVIRONMENT: {environment}")
 
-    if environment == "development":
-        # Use local FTP credentials for development
-        with open("local_credentials.json") as f:
-            local_credentials = json.load(f)
-        api_mayiservice = local_credentials["api_mayiservice_url"]
-        api_tenantname = local_credentials["api_tenant_name"]
-        api_password = local_credentials["api_pass"]
-        api_username = local_credentials["api_user"]
-        api_key = local_credentials["api_key"]
-        api_envurl = local_credentials["api_envurl"]
-        
-    else:
-        # Use Google Cloud Secret Manager for production
-        secret_client = secretmanager.SecretManagerServiceClient()
-        project_id = os.getenv('GOOGLE_CLOUD_PROJECT')
-        secret_name = f"projects/{project_id}/secrets/DELIVERY_FTP_CREDENTIALS/versions/latest"
-        response = secret_client.access_secret_version(request={"name": secret_name})
-        ftp_credentials = json.loads(response.payload.data.decode("UTF-8"))
-
-        api_mayiservice = ftp_credentials["api_mayiservice_url"]
-        api_tenantname = ftp_credentials["api_tenant_name"]
-        api_password = ftp_credentials["api_pass"]
-        api_username = ftp_credentials["api_user"]
-        api_key = ftp_credentials["api_key"]
-        api_envurl = ftp_credentials["api_envurl"]
+    api_mayiservice = "https://staging-api.aos.operative.com/mayiservice/tenant/"
+    api_envurl = "aos-stg-gw.operativeone.com"
 
     # Construct the URL for the mayiservice
-    url = f"{api_mayiservice}{api_tenantname}"
+    url = f"{api_mayiservice}{api_tenant_name}"
     print(f"Mayiservice URL: {url}")
 
     payload = {
         "expiration": 360,
-        "password": api_password,
-        "userId": api_username,
+        "password": api_pass,
+        "userId": api_user,
         "apiKey": api_key
     }
 
@@ -222,7 +182,7 @@ def trigger_pull_api(filename):
 
     # Extract the production_system_id from the JSON response
     ps_definitions = get_response.json()
-    production_system_id = next((item["id"] for item in ps_definitions if item["name"] == "Adsrv"), None)
+    production_system_id = next((item["id"] for item in ps_definitions if item["name"] == production_system_name), None)
     print(f"Production System ID: {production_system_id}")
 
     # Read the payload template from the JSON file
@@ -250,4 +210,4 @@ def trigger_pull_api(filename):
     job_id = post_response.json().get("jobId")
 
     print("Delivery pull triggered successfully with job ID:", job_id)
-    return (job_id)
+    return job_id
