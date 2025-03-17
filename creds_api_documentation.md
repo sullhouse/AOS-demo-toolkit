@@ -113,3 +113,4 @@ If an error occurs, the API will return a JSON response with an error message:
 - The API preserves the original values but formats them into concatenated strings.
 - Special characters in credentials are preserved.
 - The formatted strings use double pipe symbols (`||`) as separators. Double pipes must be avoided in all values, including passwords.
+- Enter the resulting username and password exactly (copy and paste) into an API JSON Named Credential as the User ID and Password. Set the Named Credential as the Default Named Credentials in the Default Connection Setting of the Adsrv External System.
