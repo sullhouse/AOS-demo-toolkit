@@ -58,6 +58,7 @@ def hello_http(request):
             "inventory": "inventory.main",  # Module name and function name
             "advertisers": "advertisers.main",
             "orders": "orders.main",
+            "work_order": "work_order.main",  # Add the work_order module
             "creds": "creds.main"  # Add the new creds module
         }
 

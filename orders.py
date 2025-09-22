@@ -1,6 +1,7 @@
 from google.cloud import bigquery
 from datetime import datetime
 import delivery
+import work_order
 import threading
 import time
 
@@ -216,6 +217,13 @@ def main(request):
         # Start the background thread to generate delivery data
         basic_auth = request.headers.get("Authorization")
         threading.Thread(target=delayed_generate_delivery_data, args=(order_id, basic_auth)).start()
+
+        # Generate work order HTML and save to GCS
+        try:
+            work_order_result = work_order.generate_work_order(request_json)
+            print(f"Work order generation result: {work_order_result}")
+        except Exception as e:
+            print(f"Error generating work order: {str(e)}")
 
         # Replace values in response JSON
         response_json = {
