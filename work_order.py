@@ -1,7 +1,9 @@
+
 from google.cloud import storage
 import json
 import datetime
 from decimal import Decimal
+from weasyprint import HTML
 
 def generate_work_order_html(order_data):
     """Generate HTML work order from order JSON data.
@@ -320,19 +322,18 @@ def generate_work_order_html(order_data):
     return html_content
 
 def save_work_order_to_gcs(html_content, order_name):
-    """Save the generated HTML work order to Google Cloud Storage.
+    """Save the generated HTML and PDF work order to Google Cloud Storage.
     
     Args:
         html_content (str): The generated HTML content
         order_name (str): Name of the order for the filename
         
     Returns:
-        str: The filename of the saved work order
+        dict: Filenames of the saved work order (HTML and PDF)
     """
-    
     # Get a reference to the GCS bucket
-    bucket_name = "aos-demo-public"
-    folder_name = "work_orders"
+    bucket_name = "aos-demo-toolkit"
+    folder_name = "responses"
     storage_client = storage.Client()
     bucket = storage_client.bucket(bucket_name)
     
@@ -342,39 +343,49 @@ def save_work_order_to_gcs(html_content, order_name):
     # Create filename
     safe_order_name = "".join(c for c in order_name if c.isalnum() or c in (' ', '-', '_')).rstrip()
     safe_order_name = safe_order_name.replace(' ', '_')
-    filename = f"work_order_{safe_order_name}_{timestamp}.html"
+    html_filename = f"work_order_{safe_order_name}_{timestamp}.html"
+    pdf_filename = f"work_order_{safe_order_name}_{timestamp}.pdf"
     
     # Construct the full path within the bucket
-    blob = bucket.blob(f"{folder_name}/{filename}")
+    html_blob = bucket.blob(f"{folder_name}/{html_filename}")
+    pdf_blob = bucket.blob(f"{folder_name}/{pdf_filename}")
     
     # Upload the HTML content
-    blob.upload_from_string(
+    html_blob.upload_from_string(
         data=html_content,
         content_type='text/html'
     )
     
-    return filename
+    # Generate PDF from HTML and upload
+    pdf_bytes = HTML(string=html_content).write_pdf()
+    pdf_blob.upload_from_string(
+        data=pdf_bytes,
+        content_type='application/pdf'
+    )
+    
+    return {"html": html_filename, "pdf": pdf_filename}
 
 def generate_work_order(order_data):
-    """Main function to generate work order HTML and save to GCS.
+    """Main function to generate work order HTML and PDF, and save to GCS.
     
     Args:
         order_data (dict): Order data in the format of order_sample.json
         
     Returns:
-        dict: Response with status and filename
+        dict: Response with status and filenames
     """
     try:
         # Generate HTML content
         html_content = generate_work_order_html(order_data)
         
-        # Save to GCS
-        filename = save_work_order_to_gcs(html_content, order_data['name'])
+        # Save to GCS (HTML and PDF)
+        filenames = save_work_order_to_gcs(html_content, order_data['name'])
         
         return {
             "status": "success",
             "message": "Work order generated successfully",
-            "filename": filename,
+            "html_filename": filenames["html"],
+            "pdf_filename": filenames["pdf"],
             "order_name": order_data['name'],
             "order_id": order_data['sourceOrderId']
         }
