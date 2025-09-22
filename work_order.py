@@ -331,8 +331,8 @@ def save_work_order_to_gcs(html_content, order_name):
     """
     
     # Get a reference to the GCS bucket
-    bucket_name = "aos-demo-toolkit"
-    folder_name = "responses"
+    bucket_name = "aos-demo-public"
+    folder_name = "work_orders"
     storage_client = storage.Client()
     bucket = storage_client.bucket(bucket_name)
     
