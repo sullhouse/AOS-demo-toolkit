@@ -24,8 +24,7 @@ Automatically generates professional HTML work orders when orders are processed.
 
 #### Work Order Flow
 1. When an order is processed through `orders.py`, the system automatically generates a work order
-2. The work order HTML is created using the same JSON data format as `order_sample.json`
-3. The HTML file is saved to the `aos-demo-toolkit` bucket in the `responses` folder
+2. The HTML file is saved to the `aos-demo-public` bucket in the `work_orders` folder
 4. Filename format: `work_order_{order_name}_{timestamp}.html`
 
 #### Manual Work Order Generation
@@ -36,7 +35,3 @@ Function to manage advertiser data.
 
 ### Credentials
 Function to manage API credentials and authentication.
-
-## Testing
-
-Run `test_work_order.py` to test work order generation functionality with sample data. 
