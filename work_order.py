@@ -3,7 +3,19 @@ from google.cloud import storage
 import json
 import datetime
 from decimal import Decimal
+
 from weasyprint import HTML
+import logging
+import os
+import requests
+import base64
+
+# Suppress WeasyPrint and fontTools debug/info logs
+logging.getLogger("weasyprint").setLevel(logging.WARNING)
+logging.getLogger("fontTools").setLevel(logging.WARNING)
+logging.getLogger("PIL").setLevel(logging.WARNING)
+logging.getLogger("cairocffi").setLevel(logging.WARNING)
+logging.getLogger("py.warnings").setLevel(logging.ERROR)
 
 def generate_work_order_html(order_data):
     """Generate HTML work order from order JSON data.
@@ -332,8 +344,8 @@ def save_work_order_to_gcs(html_content, order_name):
         dict: Filenames of the saved work order (HTML and PDF)
     """
     # Get a reference to the GCS bucket
-    bucket_name = "aos-demo-toolkit"
-    folder_name = "responses"
+    bucket_name = "aos-demo-public"
+    folder_name = "work_orders"
     storage_client = storage.Client()
     bucket = storage_client.bucket(bucket_name)
     
@@ -365,23 +377,22 @@ def save_work_order_to_gcs(html_content, order_name):
     
     return {"html": html_filename, "pdf": pdf_filename}
 
-def generate_work_order(order_data):
-    """Main function to generate work order HTML and PDF, and save to GCS.
+def generate_work_order(order_data, basic_auth=None, env_url=None):
+    """Main function to generate work order HTML and PDF, save to GCS, and post AOS note.
     
     Args:
         order_data (dict): Order data in the format of order_sample.json
-        
+        basic_auth (str): Basic auth header for AOS API (optional, required for note posting)
+        env_url (str): AOS environment URL (optional, required for note posting)
     Returns:
         dict: Response with status and filenames
     """
     try:
         # Generate HTML content
         html_content = generate_work_order_html(order_data)
-        
         # Save to GCS (HTML and PDF)
         filenames = save_work_order_to_gcs(html_content, order_data['name'])
-        
-        return {
+        result = {
             "status": "success",
             "message": "Work order generated successfully",
             "html_filename": filenames["html"],
@@ -389,7 +400,76 @@ def generate_work_order(order_data):
             "order_name": order_data['name'],
             "order_id": order_data['sourceOrderId']
         }
-        
+        # Post AOS note if credentials provided
+        if basic_auth and env_url:
+            try:
+                # Inline AOS note logic (from work_order_aos_note.py)
+                def extract_aos_credentials(basic_auth):
+                    encoded_auth = basic_auth.split(" ")[1]
+                    decoded_auth = base64.b64decode(encoded_auth).decode('utf-8')
+                    user_info, password_info = decoded_auth.split(':')
+                    api_user, api_tenant_name, production_system_name, ftp_user, ftp_host, ftp_folder = user_info.split('||')
+                    api_pass, api_key, ftp_pass = password_info.split('||')
+                    return {
+                        'api_user': api_user,
+                        'api_tenant_name': api_tenant_name,
+                        'production_system_name': production_system_name,
+                        'api_pass': api_pass,
+                        'api_key': api_key
+                    }
+                def get_bearer_token(env_url, api_tenant_name, api_user, api_pass, api_key):
+                    url = f"https://{env_url}/mayiservice/tenant/{api_tenant_name}"
+                    payload = {
+                        "expiration": 360,
+                        "password": api_pass,
+                        "userId": api_user,
+                        "apiKey": api_key
+                    }
+                    response = requests.post(url, json=payload)
+                    response.raise_for_status()
+                    return response.json().get("token")
+                def get_workstream_id(env_url, api_key, token, order_sequence_id):
+                    url = f"https://{env_url}/orders/v1/{api_key}/workstreams/_search"
+                    headers = {"Authorization": f"Bearer {token}"}
+                    payload = {"orderSequenceId": order_sequence_id}
+                    response = requests.post(url, json=payload, headers=headers)
+                    response.raise_for_status()
+                    ws = response.json()["workstreams"][0]
+                    return ws["id"], ws["name"]
+                def post_aos_note(env_url, api_key, token, workstream_id, workstream_name, order_id, order_name, html_filename, pdf_filename):
+                    url = f"https://{env_url}/notes/v2/{api_key}/notes"
+                    headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
+                    now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
+                    subject = f"Work Order {now}"
+                    html_url = f"https://storage.googleapis.com/aos-demo-public/work_orders/{html_filename}"
+                    pdf_url = f"https://storage.googleapis.com/aos-demo-public/work_orders/{pdf_filename}"
+                    note = f'<p>Work Order Form: <a href="{html_url}" rel="noopener noreferrer" target="_blank">html</a> <a href="{pdf_url}" rel="noopener noreferrer" target="_blank">pdf</a></p>'
+                    note_json = {
+                        "sourceEntityId": workstream_id,
+                        "entityIds": [workstream_id],
+                        "parentEntityId": workstream_id,
+                        "sharedEntities": [{"sharedEnityId": None, "sharedEnityType": "Order"}],
+                        "note": note,
+                        "noteType": "Traffic Instructions",
+                        "entityType": "Workstream",
+                        "entityName": f"Workstream Name: {workstream_name}",
+                        "scope": "External",
+                        "subjectParams": f"Order ID: {order_id} | Order Name: {order_name}",
+                        "additionalInfo": f"Order ID: {order_id}, Order Name: {order_name}, Workstream Name: {workstream_name}",
+                        "taggedUsers": [],
+                        "subjectPrefix": subject
+                    }
+                    response = requests.post(url, json=note_json, headers=headers)
+                    response.raise_for_status()
+                    return response.json()
+                creds = extract_aos_credentials(basic_auth)
+                token = get_bearer_token(env_url, creds['api_tenant_name'], creds['api_user'], creds['api_pass'], creds['api_key'])
+                workstream_id, workstream_name = get_workstream_id(env_url, creds['api_key'], token, order_data['sourceOrderId'])
+                note_result = post_aos_note(env_url, creds['api_key'], token, workstream_id, workstream_name, order_data['sourceOrderId'], order_data['name'], filenames["html"], filenames["pdf"])
+                result["note_result"] = note_result
+            except Exception as note_err:
+                result["note_error"] = str(note_err)
+        return result
     except Exception as e:
         return {
             "status": "error",

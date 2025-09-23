@@ -4,6 +4,7 @@ import delivery
 import work_order
 import threading
 import time
+import os
 
 def delayed_generate_delivery_data(order_id, basic_auth):
     time.sleep(5)  # Wait for 5 seconds
@@ -218,9 +219,11 @@ def main(request):
         basic_auth = request.headers.get("Authorization")
         threading.Thread(target=delayed_generate_delivery_data, args=(order_id, basic_auth)).start()
 
-        # Generate work order HTML and save to GCS
+        # Generate work order HTML, save to GCS, and post AOS note
         try:
-            work_order_result = work_order.generate_work_order(request_json)
+            basic_auth = request.headers.get("Authorization")
+            env_url = os.getenv("AOS_ENV_URL") or "aos-stg-gw.operativeone.com"  # Default to staging if not set
+            work_order_result = work_order.generate_work_order(request_json, basic_auth=basic_auth, env_url=env_url)
             print(f"Work order generation result: {work_order_result}")
         except Exception as e:
             print(f"Error generating work order: {str(e)}")

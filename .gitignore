@@ -1,3 +1,60 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual environments
+venv/
+ENV/
+env/
+.env/
+.venv/
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints
+
+# VS Code settings
+.vscode/
+
+# Mac OS
+.DS_Store
+
+# Windows
+Thumbs.db
+
+# Logs
+*.log
+
+# Local credentials and secrets
+local_credentials.json
+aos-demo-toolkit-*.json
+
+# Test output
+test_work_order.html
+
+# Misc
+*.bak
+*.tmp
 aos-demo-toolkit-1c72a905415b.json
 test.py
 test.json
@@ -14,3 +71,5 @@ __pycache__/delivery.cpython-313.pyc
 __pycache__/orders.cpython-313.pyc
 __pycache__/creds.cpython-313.pyc
 test_work_order.py
+__pycache__/work_order.cpython-313.pyc
+__pycache__/*.cpython-313.pyc
