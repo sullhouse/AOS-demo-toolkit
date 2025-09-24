@@ -4,11 +4,16 @@ import json
 import datetime
 from decimal import Decimal
 
-from weasyprint import HTML
+
 import logging
 import os
 import requests
 import base64
+
+# Only import WeasyPrint if PDF generation is not disabled
+DISABLE_PDF = os.environ.get('DISABLE_PDF') == '1'
+if not DISABLE_PDF:
+    from weasyprint import HTML
 
 # Suppress WeasyPrint and fontTools debug/info logs
 logging.getLogger("weasyprint").setLevel(logging.WARNING)
@@ -334,14 +339,13 @@ def generate_work_order_html(order_data):
     return html_content
 
 def save_work_order_to_gcs(html_content, order_name):
-    """Save the generated HTML and PDF work order to Google Cloud Storage.
+    """Save the generated HTML (and PDF if enabled) work order to Google Cloud Storage.
     
     Args:
         html_content (str): The generated HTML content
         order_name (str): Name of the order for the filename
-        
     Returns:
-        dict: Filenames of the saved work order (HTML and PDF)
+        dict: Filenames of the saved work order (HTML and PDF if enabled)
     """
     # Get a reference to the GCS bucket
     bucket_name = "aos-demo-public"
@@ -360,22 +364,20 @@ def save_work_order_to_gcs(html_content, order_name):
     
     # Construct the full path within the bucket
     html_blob = bucket.blob(f"{folder_name}/{html_filename}")
-    pdf_blob = bucket.blob(f"{folder_name}/{pdf_filename}")
-    
-    # Upload the HTML content
     html_blob.upload_from_string(
         data=html_content,
         content_type='text/html'
     )
-    
-    # Generate PDF from HTML and upload
-    pdf_bytes = HTML(string=html_content).write_pdf()
-    pdf_blob.upload_from_string(
-        data=pdf_bytes,
-        content_type='application/pdf'
-    )
-    
-    return {"html": html_filename, "pdf": pdf_filename}
+    if not DISABLE_PDF:
+        pdf_blob = bucket.blob(f"{folder_name}/{pdf_filename}")
+        pdf_bytes = HTML(string=html_content).write_pdf()
+        pdf_blob.upload_from_string(
+            data=pdf_bytes,
+            content_type='application/pdf'
+        )
+        return {"html": html_filename, "pdf": pdf_filename}
+    else:
+        return {"html": html_filename, "pdf": "test.pdf"}
 
 def generate_work_order(order_data, basic_auth=None, env_url=None):
     """Main function to generate work order HTML and PDF, save to GCS, and post AOS note.
@@ -396,10 +398,11 @@ def generate_work_order(order_data, basic_auth=None, env_url=None):
             "status": "success",
             "message": "Work order generated successfully",
             "html_filename": filenames["html"],
-            "pdf_filename": filenames["pdf"],
             "order_name": order_data['name'],
             "order_id": order_data['sourceOrderId']
         }
+        if not DISABLE_PDF and "pdf" in filenames:
+            result["pdf_filename"] = filenames["pdf"]
         # Post AOS note if credentials provided
         if basic_auth and env_url:
             try:
@@ -431,7 +434,7 @@ def generate_work_order(order_data, basic_auth=None, env_url=None):
                 def get_workstream_id(env_url, api_key, token, order_sequence_id):
                     url = f"https://{env_url}/orders/v1/{api_key}/workstreams/_search"
                     headers = {"Authorization": f"Bearer {token}"}
-                    payload = {"orderSequenceId": order_sequence_id}
+                    payload = {"orderSequenceId": int(order_sequence_id)}
                     response = requests.post(url, json=payload, headers=headers)
                     response.raise_for_status()
                     ws = response.json()["workstreams"][0]
@@ -459,7 +462,7 @@ def generate_work_order(order_data, basic_auth=None, env_url=None):
                         "taggedUsers": [],
                         "subjectPrefix": subject
                     }
-                    response = requests.post(url, json=note_json, headers=headers)
+                    response = requests.post(url, json=[note_json], headers=headers)
                     response.raise_for_status()
                     return response.json()
                 creds = extract_aos_credentials(basic_auth)
